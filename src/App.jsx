@@ -1,0 +1,130 @@
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
+const VerificationCodeInput = () => {
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const inputRefs = useRef([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    inputRefs.current[0].focus();
+  }, []);
+  useEffect(() => {
+    setTimeout(() => {
+      setError("");
+    }, 1500);
+  }, [error]);
+
+  const handleChange = (index, value) => {
+    if (isNaN(value)) {
+      setError("Please enter a number.");
+      return;
+    }
+
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+
+    if (value !== "" && index < 5) {
+      inputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace" && index > 0 && code[index] === "") {
+      inputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").slice(0, 6).split("");
+    const newCode = [...code];
+    pastedData.forEach((digit, index) => {
+      if (index < 6 && !isNaN(digit)) {
+        newCode[index] = digit;
+      }
+    });
+    setCode(newCode);
+    const lastFilledIndex = newCode.findIndex((digit) => digit === "") - 1;
+    if (lastFilledIndex >= 0 && lastFilledIndex < 5) {
+      inputRefs.current[lastFilledIndex + 1].focus();
+    } else if (lastFilledIndex === -1) {
+      inputRefs.current[5].focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    setLoading(true);
+    const verificationCode = code.join("");
+    if (verificationCode.length !== 6) {
+      setError("Please enter a 6-digit code.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_NAME}/verify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: verificationCode }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Verification failed");
+      }
+
+      navigate("/success");
+    } catch (err) {
+      setError("Verification Error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#101010]">
+      <div className="bg-[#171718] p-8 rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold mb-4 text-blue-300 font-[Exo]">
+          Enter Verification Code
+        </h1>
+        <div className="flex mb-4">
+          {code.map((digit, index) => (
+            <input
+              key={index}
+              type="text"
+              maxLength="1"
+              value={digit}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={handlePaste}
+              ref={(el) => (inputRefs.current[index] = el)}
+              className="w-12 h-12 text-2xl text-center border border-gray-300 rounded mx-1 focus:outline-none focus:border-teal-500 font-[Exo]"
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={handleVerify}
+          className={`w-full bg-[#adadc2] ${
+            loading ? "cursor-not-allowed" : "cursor-pointer"
+          } text-[#0d0f11] font-[Exo] py-2 rounded hover:bg-[#938daa] transition duration-200`}
+          disabled={loading}
+        >
+          {loading ? "Verifying..." : "Verify"}
+        </button>
+
+        {error && (
+          <p className="mt-4 text-center font-[Exo] text-red-600">{error}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default VerificationCodeInput;
