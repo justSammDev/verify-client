@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const VerificationCodeInput = () => {
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [code, setCode] = useState(new Array(6).fill(""));
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef([]);
@@ -17,30 +17,37 @@ const VerificationCodeInput = () => {
     }, 1500);
   }, [error]);
 
-  const handleChange = (index, value) => {
-    if (isNaN(value)) {
+  const handleChange = (index, e) => {
+    if (isNaN(e.target.value)) {
       setError("Please enter a number.");
       return;
     }
 
     const newCode = [...code];
-    newCode[index] = value;
+    newCode[index] = e.target.value;
     setCode(newCode);
-
-    if (value !== "" && index < 5) {
-      inputRefs.current[index + 1].focus();
+    const focusedInput = e.target.parentNode.querySelector("input:focus");
+    if (e.target.value && e.target.nextSibling) {
+      e.target.nextSibling.focus();
+    } else if (e.target.value && !e.target.nextSibling) {
+      focusedInput.blur();
     }
   };
 
-  const handleKeyDown = (index, e) => {
-    if (e.key === "Backspace" && index > 0 && code[index] === "") {
-      inputRefs.current[index - 1].focus();
+  const handleKeyDown = (e) => {
+    if (e.key === "Backspace" && e.target.previousSibling) {
+      setTimeout(() => {
+        e.target.previousSibling.focus();
+      }, 0);
     }
   };
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").slice(0, 6).split("");
+    const pastedData = e.clipboardData
+      .getData("text")
+      .slice(0, code.length)
+      .split("");
     const newCode = [...code];
     pastedData.forEach((digit, index) => {
       if (index < 6 && !isNaN(digit)) {
@@ -48,11 +55,11 @@ const VerificationCodeInput = () => {
       }
     });
     setCode(newCode);
-    const lastFilledIndex = newCode.findIndex((digit) => digit === "") - 1;
-    if (lastFilledIndex >= 0 && lastFilledIndex < 5) {
-      inputRefs.current[lastFilledIndex + 1].focus();
-    } else if (lastFilledIndex === -1) {
-      inputRefs.current[5].focus();
+    const lastInput = e.target.parentNode.querySelector(
+      "input[type='text']:last-child"
+    );
+    if (lastInput) {
+      lastInput.focus();
     }
   };
 
@@ -64,7 +71,6 @@ const VerificationCodeInput = () => {
       setLoading(false);
       return;
     }
-
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SERVER_NAME}/verify`,
@@ -100,8 +106,8 @@ const VerificationCodeInput = () => {
               type="text"
               maxLength="1"
               value={digit}
-              onChange={(e) => handleChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
+              onChange={(e) => handleChange(index, e)}
+              onKeyDown={(e) => handleKeyDown(e)}
               onPaste={handlePaste}
               ref={(el) => (inputRefs.current[index] = el)}
               className="w-12 h-12 text-2xl text-center border border-gray-300 rounded mx-1 focus:outline-none focus:border-teal-500 font-[Exo]"
