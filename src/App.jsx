@@ -29,8 +29,6 @@ const VerificationCodeInput = () => {
     const focusedInput = e.target.parentNode.querySelector("input:focus");
     if (e.target.value && e.target.nextSibling) {
       e.target.nextSibling.focus();
-    } else if (e.target.value && !e.target.nextSibling) {
-      focusedInput.blur();
     }
   };
 
@@ -124,6 +122,22 @@ const VerificationCodeInput = () => {
         >
           {loading ? "Verifying..." : "Verify"}
         </button>
+        <div className="w-full flex items-center justify-around mt-2 gap-4">
+          <a
+            className=" bg-[#adadc2] text-[#0d0f11] font-[Exo] py-2 flex-1 text-center rounded hover:bg-[#938daa] transition duration-200"
+            target="_blank"
+            href="https://github.com/justSammDev/verify-client"
+          >
+            Cient code
+          </a>
+          <a
+            className=" bg-[#adadc2] text-[#0d0f11] font-[Exo] py-2 flex-1 text-center rounded hover:bg-[#938daa] transition duration-200"
+            target="_blank"
+            href="https://github.com/justSammDev/verify-server"
+          >
+            Server code
+          </a>
+        </div>
 
         {error && (
           <p className="mt-4 text-center font-[Exo] text-red-600">{error}</p>
